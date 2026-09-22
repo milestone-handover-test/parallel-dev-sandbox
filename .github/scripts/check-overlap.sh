@@ -39,9 +39,16 @@ echo
 echo "### 2. issue の「触る見込みのファイル」との比較"
 echo
 BODY=$(gh pr view "$PR_NUMBER" -R "$REPO" --json body,headRefName --jq '.body + "\n" + .headRefName')
-ISSUE=$(printf '%s' "$BODY" | grep -oE '#[0-9]+|issue-?[0-9]+' | grep -oE '[0-9]+' | head -1 || true)
+# 本文と branch 名に出る番号のうち、issue である物 (PR でない物) の最初の 1 つを採る
+ISSUE=""
+for n in $(printf '%s' "$BODY" | grep -oE '#[0-9]+|issue-?[0-9]+' | grep -oE '[0-9]+' | awk '!seen[$0]++'); do
+  if [ "$(gh api "repos/$REPO/issues/$n" --jq 'if .pull_request then "pr" else "issue" end' 2>/dev/null)" = "issue" ]; then
+    ISSUE=$n
+    break
+  fi
+done
 if [ -z "$ISSUE" ]; then
-  echo "- PR の本文にも branch 名にも issue 番号が無いので、比べられない"
+  echo "- PR の本文にも branch 名にも issue 番号が無い (PR 番号は除く) ので、比べられない"
 else
   DECLARED=$(gh issue view "$ISSUE" -R "$REPO" --json body --jq .body \
     | awk '/^## 触る見込みのファイル/{f=1; next} /^## /{f=0} f' \
