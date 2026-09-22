@@ -1,0 +1,42 @@
+# 案 2「GitHub 上の Claude」: PR が出る / 更新されるたびに、GitHub の中で Claude を動かして見張らせる。
+# 認証は Claude のサブスクの長期トークン (secret CLAUDE_CODE_OAUTH_TOKEN)。作った人の契約の枠を使う。
+name: claude-watch
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: |
+            --model claude-sonnet-5
+            --max-turns 15
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh api:*),Read,Grep,Glob"
+          prompt: |
+            あなたはこのリポジトリの「見張り役」です。対象は PR #${{ github.event.pull_request.number }} (${{ github.repository }})。
+            コードは変更しません。調べて、結果を PR にコメントするだけです。
+
+            手順:
+            1. `gh pr diff ${{ github.event.pull_request.number }} --name-only` で、この PR が触るファイルを列挙する
+            2. `gh pr list --state open --json number,title,headRefName` で他の open な PR を取り、それぞれ `gh pr diff <番号> --name-only` で触るファイルを取り、この PR との重なりを見る
+            3. `gh issue list --state open --json number,title,body` で open な issue を読み、本文の「## 触る見込みのファイル」の下に書かれたパスを集め、この PR の差分との重なりを見る (相手がまだ PR を出していない作業も、ここで拾う)
+            4. この PR が `contract/` を触っているか、または `contract/` に書かれた約束事と食い違う変更が frontend/ や backend/ に無いかを、差分を読んで判断する
+            5. 結果を日本語で 1 回だけ `gh pr comment ${{ github.event.pull_request.number }} --body "..."` で投稿する。見出しは「## Claude の見張り」。項目は「他の PR との重なり」「open な issue の見込みとの重なり」「契約への影響」「次にやるとよい事」の 4 つ。重なりが無ければ「無し」と書く。推測した所は「(推測)」と付ける。300 字以内。
