@@ -1,0 +1,48 @@
+# 案 1「機械の見張り」: PR が出るたびに、他の open な PR との重なりと、issue の「触る見込みのファイル」との差を測る。AI は使わない。
+name: territory-check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 重なりを測る
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set +e
+          .github/scripts/check-overlap.sh > report.md
+          echo "rc=$?" >> "$GITHUB_OUTPUT"
+          cat report.md
+
+      - name: PR にコメントする (前回のコメントがあれば書き換える)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          existing=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
+            --jq '[.[] | select(.user.type == "Bot" and (.body | startswith("## 見張りの結果")))] | first | .id // empty')
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$REPO/issues/comments/$existing" -F body=@report.md > /dev/null
+          else
+            gh api --method POST "repos/$REPO/issues/$PR_NUMBER/comments" -F body=@report.md > /dev/null
+          fi
+
+      - name: 重なりがあれば失敗にする
+        if: steps.check.outputs.rc != '0'
+        run: |
+          echo "他の open な PR と触るファイルが重なっている。上の報告を見て、順番を決めてから進める。"
+          exit 1
