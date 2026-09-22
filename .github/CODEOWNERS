@@ -1,0 +1,4 @@
+# フォルダごとの担当。担当のフォルダを触る PR には、担当へ自動でレビュー依頼が飛ぶ
+/frontend/ @mirinodev
+/backend/  @mirinosubdev
+/contract/ @mirinodev @mirinosubdev
