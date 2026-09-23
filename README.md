@@ -12,3 +12,4 @@
 
 担当は `.github/CODEOWNERS` に書いてある。issue は `.github/ISSUE_TEMPLATE/task.md` の雛形で立てる。
 - 見張りの確かめ C
+- 見張りの確かめ D
