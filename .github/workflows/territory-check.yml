@@ -1,9 +1,11 @@
 # 案 1「機械の見張り」: PR が出るたびに、他の open な PR との重なりと、issue の「触る見込みのファイル」との差を測る。AI は使わない。
+# 重なったら、先に出ていた相手の PR にも知らせる (相手の検査は走り直さないので)。
+# 作者以外が merge した時・branch を更新した時 (Update branch など) も PR に知らせる (相手の PR は押さない、の見張り)。
 name: territory-check
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
 
 permissions:
   contents: read
@@ -12,6 +14,7 @@ permissions:
 
 jobs:
   check:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +25,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          OVERLAP_OUT: overlaps.tsv
         run: |
           set +e
           .github/scripts/check-overlap.sh > report.md
@@ -42,8 +46,58 @@ jobs:
             gh api --method POST "repos/$REPO/issues/$PR_NUMBER/comments" -F body=@report.md > /dev/null
           fi
 
+      - name: 先に出ていた相手の PR にも知らせる (前回の知らせがあれば書き換える)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          [ -s overlaps.tsv ] || exit 0
+          while IFS=$'\t' read -r other files; do
+            marker="<!-- overlap-notice from #$PR_NUMBER -->"
+            printf '%s\n## 見張りの結果: 後から重なる PR が出た\n\n- PR #%s が、この PR と同じファイルを触っている: %s\n- この PR の検査は緑のまま (知らせるだけ)。どちらを先に merge するかを相手と決める\n' \
+              "$marker" "$PR_NUMBER" "$(echo "$files" | sed 's/,/, /g')" > notice.md
+            existing=$(gh api "repos/$REPO/issues/$other/comments" --paginate \
+              --jq "[.[] | select(.user.type == \"Bot\" and (.body | startswith(\"$marker\")))] | first | .id // empty")
+            if [ -n "$existing" ]; then
+              gh api --method PATCH "repos/$REPO/issues/comments/$existing" -F body=@notice.md > /dev/null
+            else
+              gh api --method POST "repos/$REPO/issues/$other/comments" -F body=@notice.md > /dev/null
+            fi
+          done < overlaps.tsv
+
       - name: 重なりがあれば失敗にする
         if: steps.check.outputs.rc != '0'
         run: |
           echo "他の open な PR と触るファイルが重なっている。上の報告を見て、順番を決めてから進める。"
           exit 1
+
+  who-pressed:
+    # 作者以外が merge した時 (closed) と、作者以外が branch を更新した時 (synchronize。Update branch ボタンなど) に PR へ知らせる
+    if: >-
+      (github.event.action == 'closed' && github.event.pull_request.merged &&
+       github.event.pull_request.merged_by.login != github.event.pull_request.user.login) ||
+      (github.event.action == 'synchronize' && github.actor != github.event.pull_request.user.login)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 作者以外がしたことを PR に書く
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ACTION: ${{ github.event.action }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          MERGER: ${{ github.event.pull_request.merged_by.login }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          if [ "$ACTION" = "closed" ]; then
+            who="$MERGER"; what="作者以外が merge した"
+            fix="間違いなら、取り消しの PR (Revert) 1 本で戻せる"
+          else
+            who="$ACTOR"; what="作者以外がこの PR の branch を更新した (Update branch など)"
+            fix="作者は、手元で pull してから作業を続ける"
+          fi
+          printf '## 見張り: %s\n\n- 作者: @%s / した人: @%s\n- 相手の PR の merge ボタンは押さない (Update branch も)。わざとなら問題ない\n- %s\n' \
+            "$what" "$AUTHOR" "$who" "$fix" > who.md
+          gh api --method POST "repos/$REPO/issues/$PR_NUMBER/comments" -F body=@who.md > /dev/null

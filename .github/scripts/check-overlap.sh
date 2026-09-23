@@ -5,6 +5,7 @@
 # 2. この PR に結びつく issue の「触る見込みのファイル」と、実際の差分を比べる → 見込みの外を触っていれば注意 (rc は変えない)
 #
 # 使い方: REPO=owner/name PR_NUMBER=N .github/scripts/check-overlap.sh
+#   OVERLAP_OUT=<ファイル> を渡すと、重なった相手の PR 番号と重なったファイルを 1 行ずつ (番号<TAB>ファイル,ファイル) そこに書く。workflow が相手の PR に知らせるのに使う
 # 出力: 標準出力に報告 (Markdown)。workflow はこれを PR のコメントに貼る。
 set -u
 
@@ -31,6 +32,9 @@ for other in $(gh pr list -R "$REPO" --state open --json number --jq '.[].number
     rc=1
     echo "- **PR #$other と重なる**:"
     echo "$common" | sed 's/^/  - `/; s/$/`/'
+    if [ -n "${OVERLAP_OUT:-}" ]; then
+      printf '%s\t%s\n' "$other" "$(echo "$common" | paste -sd, -)" >> "$OVERLAP_OUT"
+    fi
   fi
 done
 [ "$found" = 0 ] && echo "- 重なりは無い"
