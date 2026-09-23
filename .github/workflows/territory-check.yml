@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: read   # 非公開の repo で issue の「触る見込みのファイル」を読むため (permissions を書くと、書いていない物は none になる)
 
 jobs:
   check:
