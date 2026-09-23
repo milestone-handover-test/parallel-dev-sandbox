@@ -27,7 +27,7 @@
 | 案 | 見る役 | 動くきっかけ | 費用 | 「push を見ていて割り振る役」への応え方 | この repo での実体 |
 |---|---|---|---|---|---|
 | 1. 機械の検査 | CODEOWNERS + PR ごとに走る検査 (AI なし) | PR が出た時 | GitHub Actions の分数だけ (Team は月 3,000 分込み) | 見張るが、割り振りの判断はしない | `.github/workflows/territory-check.yml` + `.github/scripts/check-overlap.sh` |
-| 2. GitHub の中の Claude | claude-code-action で GitHub の中で Claude を動かす | PR・issue・定期実行 | Actions の分数 + Claude の利用分 (誰かのサブスク枠か、会社の API キー) | 正面から応える | `.github/workflows/claude-watch.yml` (secret `CLAUDE_CODE_OAUTH_TOKEN`) |
+| 2. GitHub の中の Claude | claude-code-action で GitHub の中で Claude を動かす | PR・issue・定期実行 | Actions の分数 + Claude の利用分 (会社のサブスクの枠か、会社の API キー) | 正面から応える | `.github/workflows/claude-watch.yml` (secret `CLAUDE_CODE_OAUTH_TOKEN`) |
 | 3. 各自の Claude | 着手の時に open な PR と issue を読み、触る見込みを issue に書く | 着手した時 | 0 円 | 応えない (着手の瞬間だけ) | 手で頼んで確認 (skill 化はまだ) |
 
 積む順の案: 1 を土台に入れる → 3 を足す → 機械で拾えない食い違いが出てから 2 を載せる。
@@ -66,7 +66,7 @@
 
 - 共有ファイル (依存の一覧・設定・共通の型) の置き場と担当。ダミーでは出なかったので、実案件で出た場所から決める
 - 契約を何で書くか (OpenAPI など)。実案件の技術の構成が決まってから
-- 案 2 を使う時、Claude の利用分を誰の契約にするか (個人のサブスク枠 / 会社の API キー)
+- 案 2 を使う時、Claude の利用分の払い方 (会社のサブスクの枠 / 会社の API キー)
 - 整形ツールの設定を repo に入れて 2 台で揃えるか (出典なしの実務の案)
 
 ## 出典 (ルール 3・5・6 の根拠)
