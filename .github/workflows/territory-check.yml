@@ -1,6 +1,6 @@
 # 案 1「機械の見張り」: PR が出るたびに、他の open な PR との重なりと、issue の「触る見込みのファイル」との差を測る。AI は使わない。
 # 重なったら、先に出ていた相手の PR にも知らせる (相手の検査は走り直さないので)。
-# 作者以外が merge した時・branch を更新した時 (Update branch など) も PR に知らせる (ルール 7: 相手の PR は押さない)。
+# 作者以外が merge した時・branch を更新した時 (Update branch など) も PR に知らせる (相手の PR は押さない、の見張り)。
 name: territory-check
 
 on:
@@ -98,6 +98,6 @@ jobs:
             who="$ACTOR"; what="作者以外がこの PR の branch を更新した (Update branch など)"
             fix="作者は、手元で pull してから作業を続ける"
           fi
-          printf '## 見張り: %s\n\n- 作者: @%s / した人: @%s\n- ルール 7: 相手の PR の merge ボタンは押さない (Update branch も)。わざとなら問題ない\n- %s\n' \
+          printf '## 見張り: %s\n\n- 作者: @%s / した人: @%s\n- 相手の PR の merge ボタンは押さない (Update branch も)。わざとなら問題ない\n- %s\n' \
             "$what" "$AUTHOR" "$who" "$fix" > who.md
           gh api --method POST "repos/$REPO/issues/$PR_NUMBER/comments" -F body=@who.md > /dev/null
