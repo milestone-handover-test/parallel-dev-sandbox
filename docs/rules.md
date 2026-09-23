@@ -72,10 +72,10 @@
 ## 出典 (ルール 3・5・6 の根拠)
 
 - 契約を実装より先に書く: OpenAPI Initiative "Best Practices" https://learn.openapis.org/best-practices.html
-- branch は 2 日以内: trunkbaseddevelopment.com "Short-Lived Feature Branches" https://trunkbaseddevelopment.com/short-lived-feature-branches/
+- branch は 2 日以内: DORA "Working in small batches" https://dora.dev/capabilities/working-in-small-batches/
 - 同時に開く branch は 3 本以下: DORA "Trunk-based development" https://dora.dev/capabilities/trunk-based-development/
-- PR は 100 行が目安: Google Engineering Practices "Small CLs" https://google.github.io/eng-practices/review/developer/small-cls.html
+- PR は小さく、1 つの目的に (「目安 100 行」はチームの決め): GitHub Docs "Helping others review your changes" https://docs.github.com/en/pull-requests/concepts/helping-others-review-your-changes
 - main の最新を取り込んでから merge は merge queue と同じ利点: GitHub Docs "Managing a merge queue" https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue
 - CODEOWNERS / Draft には依頼が飛ばない: GitHub Docs "About code owners" https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 - 案 2 の認証と費用: Claude Code Docs "GitHub Actions" https://code.claude.com/docs/en/github-actions
-- Actions の分数: GitHub Docs "About billing for GitHub Actions" https://docs.github.com/en/billing/managing-billing-for-your-products/about-billing-for-github-actions
+- Actions の分数: GitHub Docs "GitHub Actions billing" https://docs.github.com/en/billing/concepts/product-billing/github-actions
