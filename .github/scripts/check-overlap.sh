@@ -38,18 +38,31 @@ echo
 
 echo "### 2. issue の「触る見込みのファイル」との比較"
 echo
-BODY=$(gh pr view "$PR_NUMBER" -R "$REPO" --json body,headRefName --jq '.body + "\n" + .headRefName')
-# 本文と branch 名に出る番号のうち、issue である物 (PR でない物) の最初の 1 つを採る
-ISSUE=""
-for n in $(printf '%s' "$BODY" | grep -oE '#[0-9]+|issue-?[0-9]+' | grep -oE '[0-9]+' | awk '!seen[$0]++'); do
-  if [ "$(gh api "repos/$REPO/issues/$n" --jq 'if .pull_request then "pr" else "issue" end' 2>/dev/null)" = "issue" ]; then
-    ISSUE=$n
-    break
-  fi
-done
+# 比べる issue は、確かな順に 3 つの手で探す
+#   1. この PR が閉じる issue (本文の「Closes #番号」など、GitHub が PR と結びつけた物)
+#   2. branch 名の issue-番号
+#   3. 本文に出る番号のうち、issue である物の最初の 1 つ (「対になる issue #16」のような別の issue を拾うことがあるので、推定と書く)
+ISSUE=$(gh pr view "$PR_NUMBER" -R "$REPO" --json closingIssuesReferences --jq '.closingIssuesReferences[0].number // empty')
+HOW="この PR が閉じる issue"
 if [ -z "$ISSUE" ]; then
-  echo "- PR の本文にも branch 名にも issue 番号が無い (PR 番号は除く) ので、比べられない"
+  HEAD=$(gh pr view "$PR_NUMBER" -R "$REPO" --json headRefName --jq .headRefName)
+  ISSUE=$(printf '%s' "$HEAD" | grep -oE 'issue-?[0-9]+' | grep -oE '[0-9]+' | head -1)
+  HOW="branch 名の issue 番号"
+fi
+if [ -z "$ISSUE" ]; then
+  BODY=$(gh pr view "$PR_NUMBER" -R "$REPO" --json body --jq .body)
+  for n in $(printf '%s' "$BODY" | grep -oE '#[0-9]+' | grep -oE '[0-9]+' | awk '!seen[$0]++'); do
+    if [ "$(gh api "repos/$REPO/issues/$n" --jq 'if .pull_request then "pr" else "issue" end' 2>/dev/null)" = "issue" ]; then
+      ISSUE=$n
+      HOW="本文に出る最初の issue 番号。推定なので、PR の本文に「Closes #番号」を書くと確かになる"
+      break
+    fi
+  done
+fi
+if [ -z "$ISSUE" ]; then
+  echo "- この PR が閉じる issue (「Closes #番号」) も、branch 名や本文の issue 番号も無いので、比べられない"
 else
+  echo "- 比べた issue: #$ISSUE ($HOW)"
   DECLARED=$(gh issue view "$ISSUE" -R "$REPO" --json body --jq .body \
     | awk '/^## 触る見込みのファイル/{f=1; next} /^## /{f=0} f' \
     | grep -oE '^- *`?[^` ]+`?' | sed 's/^- *//; s/`//g' | grep -v '^$' | sort -u || true)
