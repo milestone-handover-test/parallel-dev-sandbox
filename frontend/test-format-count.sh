@@ -25,16 +25,17 @@ check() {
 # 弾く入力: 標準出力に何も出さず、標準エラーに理由を 1 行出して rc 2 で終わるかを見る
 check_reject() {
   local name="$1" input="$2" out err rc
+  local want_err="format_count: 整数ではない"
   out=$(format_count "$input" 2>/dev/null)
   rc=$?
   err=$(format_count "$input" 2>&1 >/dev/null)
-  if [ "$rc" -eq 2 ] && [ -z "$out" ] && [ -n "$err" ] && [[ $err != *$'\n'* ]]; then
+  if [ "$rc" -eq 2 ] && [ -z "$out" ] && [ "$err" = "$want_err" ]; then
     pass=$((pass + 1))
     printf 'ok   %s\n' "$name"
   else
     fail=$((fail + 1))
     printf 'FAIL %s\n' "$name"
-    printf '     want: rc 2 / 標準出力は空 / 標準エラーに 1 行\n'
+    printf '     want: rc 2 / 標準出力は空 / 標準エラー %s\n' "$want_err"
     printf '     got:  rc %s / 標準出力 %q / 標準エラー %q\n' "$rc" "$out" "$err"
   fi
 }
@@ -49,11 +50,24 @@ check "7 桁はカンマが 2 つ入る" "1234567" "1,234,567"
 check "途中の 0 も桁として残る" "1000000" "1,000,000"
 check "マイナスの整数も数として区切る" "-1234" "-1,234"
 check "桁数が 3 の倍数のマイナスは先頭にカンマを入れない" "-123" "-123"
+check "先頭の 0 は外す" "007" "7"
+check "先頭の 0 を外してから区切る (0,007 にしない)" "0007" "7"
+check "0 だけが並ぶと 0 になる" "000" "0"
+check "マイナスでも先頭の 0 は外す" "-0012345" "-12,345"
+check "-0 は 0 にする" "-0" "0"
+check "-000 も 0 にする" "-000" "0"
 
 check_reject "空は弾く" ""
 check_reject "文字だけは弾く" "abc"
 check_reject "数字の間に文字を含むと弾く" "12a4"
 check_reject "小数は弾く" "1234.5"
+check_reject "+ の付いた数は弾く" "+123"
+check_reject "前に空白があると弾く" " 12"
+check_reject "後ろに空白があると弾く" "12 "
+check_reject "- だけは弾く" "-"
+check_reject "- が 2 つ続くと弾く" "--1"
+check_reject "間に - があると弾く" "1-2"
+check_reject "全角の数字は弾く" "１２３"
 
 printf '\n通った: %d / 落ちた: %d\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
