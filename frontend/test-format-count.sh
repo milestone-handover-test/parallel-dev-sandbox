@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # frontend/format-count.sh の試験。`bash frontend/test-format-count.sh` で全部流す。
-# 落ちた場合が 1 つでもあれば rc 1 で終わる。道具を入れずに 2 台で同じに走らせるため、bash だけで書く。
+# 全部通れば rc 0、落ちた場合が 1 つでもあれば rc 1 で終わる。道具を入れずに 2 台で同じに走らせるため、bash だけで書く。
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 . "$here/format-count.sh"
