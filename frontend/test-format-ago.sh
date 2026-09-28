@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # frontend/format-ago.sh の試験。`bash frontend/test-format-ago.sh` で全部流す。
+# format-ago.sh はこの file の隣から読むので、repo の外から `bash <この file のパス>` で流しても同じ結果になる。
 # 全部通れば rc 0、落ちた場合が 1 つでもあれば rc 1 で終わる。道具を入れずに 2 台で同じに走らせるため、bash だけで書く。
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
