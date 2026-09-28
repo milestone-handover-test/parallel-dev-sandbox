@@ -10,4 +10,5 @@
 | `backend/` | mirinosubdev |
 | `contract/` | 2 人 (フロントとバックの接続部の約束事) |
 
+バック (`backend/`) には、契約 (`contract/hello.md`) どおりに `GET /hello` で `{ "message": 文字列 }` を返す API を置く。
 担当は `.github/CODEOWNERS` に書いてある。issue は `.github/ISSUE_TEMPLATE/task.md` の雛形で立てる。
