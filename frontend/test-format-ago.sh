@@ -75,10 +75,31 @@ check_reject "数字の間に文字を含むと弾く" "12a4" "$not_int"
 check_reject "小数は弾く" "1.5" "$not_int"
 # 中のコマンドが走ると、標準エラーに「走った」が混ざって落ちる
 check_reject "中のコマンドを走らせずに弾く" 'a[$(echo 走った >&2)]' "$not_int"
+check_reject "+ の付いた数は弾く" "+123" "$not_int"
+check_reject "前に空白があると弾く" " 12" "$not_int"
+check_reject "後ろに空白があると弾く" "12 " "$not_int"
+check_reject "全角の数字は弾く" "１２３" "$not_int"
+check_reject "数字の間の - は弾く" "1-2" "$not_int"
+
+# 先頭の 0 は外して読む ($(( )) に渡すと 8 進数として読まれて止まる)
+check "先頭の 0 は外す" "0090" "1 分前"
+check "0 だけが並んでいたら 0 秒前" "000" "0 秒前"
+check "22 文字でも中身が 90 なら 1 分前" "0000000000000000000090" "1 分前"
+
+# -0 は 0 として扱う (未来の時刻ではない)
+check "-0 は 0 秒前" "-0" "0 秒前"
+check "-000 も 0 秒前" "-000" "0 秒前"
 
 # マイナスの数 (未来の時刻) は、数でない入力と文言を分けて弾く
 check_reject "マイナスの整数は弾く" "-1" "$negative"
 check_reject "issue の例のマイナスも弾く" "-90" "$negative"
+check_reject "マイナスで先頭に 0 が付いても弾く" "-0090" "$negative"
+
+# マイナスで整数でない物は「整数ではない」で弾く (整数かどうかを先に見る)
+check_reject "マイナスの小数は整数ではない" "-1.5" "$not_int"
+check_reject "- の後ろが文字なら整数ではない" "-abc" "$not_int"
+check_reject "- だけは整数ではない" "-" "$not_int"
+check_reject "- が 2 つは整数ではない" "--1" "$not_int"
 
 printf '\n通った: %d / 落ちた: %d\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
