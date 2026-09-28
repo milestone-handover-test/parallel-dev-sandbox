@@ -10,4 +10,6 @@
 | `backend/` | mirinosubdev |
 | `contract/` | 2 人 (フロントとバックの接続部の約束事) |
 
+フロントの試験は、repo の root で `for t in frontend/test-*.sh; do bash "$t" || echo "落ちた: $t"; done` を打つと全部流れる (落ちた file は `落ちた: <file>` と出る)。
+
 担当は `.github/CODEOWNERS` に書いてある。issue は `.github/ISSUE_TEMPLATE/task.md` の雛形で立てる。
